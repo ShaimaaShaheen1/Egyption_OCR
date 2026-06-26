@@ -163,9 +163,10 @@ id-card-ocr/
 ├── Dockerfile
 ├── .dockerignore
 ├── form.html
-└── models/
+└── Models/
     ├── arabic_digit_model3.pth
-    └── TROCRcheckpoint_300_final_version/
+    ├── TROCRcheckpoint_300_final_version/
+    └── ....
 ```
 
 ---
