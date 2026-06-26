@@ -1,0 +1,31 @@
+services:
+  id-card-ocr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: id-card-ocr-api:latest
+    container_name: id-card-ocr-api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+
+    volumes:
+      # Mount credentials and logs
+      - ./credentials.json:/app/credentials.json:ro
+      - ./api_access.log:/app/api_access.log
+      # Mount the models directory as read-only
+      - ./models:/app/models:ro
+
+    # GPU passthrough configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]

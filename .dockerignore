@@ -1,0 +1,16 @@
+# Ignore models to prevent massive image size
+models/
+
+# Ignore sensitive credentials
+credentials.json
+
+# Ignore logs and caches
+api_access.log
+__pycache__/
+*.pyc
+.pytest_cache/
+OUTPUT_mohamedsalah/
+
+# Ignore Git
+.git/
+.gitignore

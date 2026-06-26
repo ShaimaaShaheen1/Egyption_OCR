@@ -1,0 +1,318 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Card Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .upload-container:hover {
+            border-color: #999;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        
+        .submit-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .submit-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .submit-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .auth-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ID Card Recognition</h1>
+    
+    <div class="auth-container">
+        <h2>API Authentication</h2>
+        <div class="form-group">
+            <label for="api-key">API Key:</label>
+            <input type="text" id="api-key" placeholder="Enter API Key">
+        </div>
+        <div class="form-group">
+            <label for="api-secret">API Secret:</label>
+            <input type="password" id="api-secret" placeholder="Enter API Secret">
+        </div>
+    </div>
+    
+    <div class="upload-container">
+        <h2>Upload ID Card Image</h2>
+        <p>Click to select or drag and drop an image file (JPG, JPEG, PNG)</p>
+        <input type="file" id="file-input" class="file-input" accept=".jpg,.jpeg,.png">
+        <button class="upload-btn" id="select-btn">Select Image</button>
+    </div>
+    
+    <div class="preview-container" id="preview-container" style="display: none;">
+        <h3>Image Preview</h3>
+        <img id="preview-image" class="preview-image" src="" alt="Image Preview">
+        <button class="submit-btn" id="submit-btn" disabled>Process ID Card</button>
+    </div>
+    
+    <div class="result-container" id="result-container" style="display: none;">
+        <h3>Recognition Results</h3>
+        <div id="result-content"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-input');
+            const selectBtn = document.getElementById('select-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const resultContainer = document.getElementById('result-container');
+            const resultContent = document.getElementById('result-content');
+            const apiKeyInput = document.getElementById('api-key');
+            const apiSecretInput = document.getElementById('api-secret');
+            
+            let selectedFile = null;
+            
+            // Handle file selection button
+            selectBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Handle file drag and drop
+            const uploadContainer = document.querySelector('.upload-container');
+            
+            uploadContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadContainer.style.borderColor = '#2196F3';
+            });
+            
+            uploadContainer.addEventListener('dragleave', function() {
+                uploadContainer.style.borderColor = '#ccc';
+            });
+            
+            uploadContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadContainer.style.borderColor = '#ccc';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            function handleFileSelect() {
+                const file = fileInput.files[0];
+                if (!file) return;
+                
+                // Check file type
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPG, JPEG, or PNG)');
+                    fileInput.value = '';
+                    return;
+                }
+                
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size cannot exceed 10MB');
+                    fileInput.value = '';
+                    return;
+                }
+                
+                // Display preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    submitBtn.disabled = false;
+                    selectedFile = file;
+                    
+                    // Hide previous results
+                    resultContainer.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // Handle form submission
+            submitBtn.addEventListener('click', async function() {
+                if (!selectedFile) return;
+                
+                const apiKey = apiKeyInput.value.trim();
+                const apiSecret = apiSecretInput.value.trim();
+                
+                if (!apiKey || !apiSecret) {
+                    alert('Please enter your API Key and API Secret');
+                    return;
+                }
+                
+                // Show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="loading"></span> Processing...';
+                resultContainer.style.display = 'none';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', selectedFile);
+                    
+                    const response = await fetch('/api/id-recognition', {
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': apiKey,
+                            'x-api-secret': apiSecret,
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Error processing image');
+                    }
+                    
+                    // Display results
+                    resultContainer.style.display = 'block';
+                    
+                    const idData = data.id_data;
+                    const accuracy = data.accuracy;
+                    const timestamp = new Date(data.timestamp * 1000).toLocaleString();
+                    
+                    resultContent.innerHTML = `
+                        <p><strong>Processed at:</strong> ${timestamp}</p>
+                        <p><strong>Accuracy:</strong> ${(accuracy * 100).toFixed(2)}%</p>
+                        <h4>ID Card Data:</h4>
+                        <ul>
+                            <li><strong>First Name:</strong> ${idData.first_name}</li>
+                            <li><strong>Last Name:</strong> ${idData.last_name}</li>
+                            <li><strong>National Number:</strong> ${idData.national_number}</li>
+                            <li style="display:none;"><strong>Address:</strong> ${idData.address}</li>
+                        </ul>
+                    `;
+                    
+                } catch (error) {
+                    resultContainer.style.display = 'block';
+                    resultContent.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                } finally {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Process ID Card';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
